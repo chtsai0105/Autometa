@@ -2,44 +2,28 @@
 nextflow.enable.dsl=2
 
 
-params.rev_reads = null
-params.fwd_reads = null
+params.orf_fasta_path = null
 
-include { LENGTH_TABLE } from './process/length_table.nf'
-include { ALIGN_READS } from './process/align_reads.nf'
-include { SORT_READS} from './process/sort_reads.nf'
-include { GENOMECOV} from './process/genome_coverage.nf'
+include { REMOVE_EXTRA; DIAMOND_MAKEDB; DIAMOND_BLASTP } from './process/diamond.nf' addParams(extra_diamond_arg_string: '--no-self-hits')
+include { TSV_SORT_BY_COLUMN; TSV_REMOVE_SAME_COLUMN } from './process/utilities.nf' 
 
 
-workflow READ_COVERAGE {
-  take:
-    metagenome
-    fwd_reads
-    rev_reads
-    se_reads
+workflow PAIRWISE_BLAST {
 
+    take:
+        orfs
 
-  main:
-    LENGTH_TABLE(metagenome)
-    ALIGN_READS(metagenome, fwd_reads, rev_reads, se_reads)
-    SORT_READS(ALIGN_READS.out)
-    GENOMECOV(SORT_READS.out, LENGTH_TABLE.out)
-
-  emit:
-    bed = GENOMECOV.out.bed
-    coverage = GENOMECOV.out.coverage
+    main:
+        REMOVE_EXTRA(orfs)
+        DIAMOND_MAKEDB(REMOVE_EXTRA.out, "allvsall")
+        DIAMOND_BLASTP(REMOVE_EXTRA.out, DIAMOND_MAKEDB.out, "yep")
+        TSV_REMOVE_SAME_COLUMN(DIAMOND_BLASTP.out, 1, 2)
+        TSV_SORT_BY_COLUMN(TSV_REMOVE_SAME_COLUMN.out, 3)
 }
+
 
 workflow {
-  take:
-    metagenome
-    fwd_reads
-    rev_reads
-    se_reads
-  
-  main:
-    READ_COVERAGE(metagenome, fwd_reads, rev_reads, se_reads)
-
+    main:
+        orfs = Channel.fromPath("${params.orf_fasta_path}")
+        GENE_COVERAGE(orfs)
 }
-
-
