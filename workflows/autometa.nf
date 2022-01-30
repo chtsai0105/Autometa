@@ -169,6 +169,12 @@ workflow AUTOMETA {
     * -------------------------------------------------
     */
 
+    // TODO: Separate k-mer behavior
+    // 1. Get counts from sample
+    // 2. Subset counts by taxon-profiling results
+    // 3. Normalize and embed counts subsets
+    // 4. Rejoin embedded subsets with their respective samples kingdom
+
     KMERS(
         kmers_input_ch
     )
@@ -182,6 +188,8 @@ workflow AUTOMETA {
     // --------------------------------------------------------------------------------
     // Run hmmscan and look for marker genes in contig orfs
     // --------------------------------------------------------------------------------
+
+    // TODO: Annotate orfs against all marker hmmdbs, i.e. both bacteria and archaea
 
     MARKERS(
         orfs_ch
@@ -205,6 +213,7 @@ workflow AUTOMETA {
             .set{binning_ch}
     }
 
+    // TODO: Add default behavior where both bacteria and archaea are binned from the metagenome
     BINNING(
         binning_ch
     )
@@ -244,6 +253,12 @@ workflow AUTOMETA {
         .set{binning_summary_ch}
 
     ncbi = file(params.single_db_dir)
+
+    // TODO: Add behavior to summarize the matrix of binning results from above
+    // e.g.
+    // |   domain |            binning method           |
+    // | bacteria | BINNING.out.main | RECRUIT.out.main |
+    // |  archaea | BINNING.out.main | RECRUIT.out.main |
 
     BINNING_SUMMARY(
         binning_summary_ch,
